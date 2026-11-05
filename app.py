@@ -212,7 +212,8 @@ def export_campaign(campaign_id: int):
             raise HTTPException(404)
         rows = conn.execute("""
           SELECT p.code,
-          MAX(CASE WHEN e.kind IN ('scanner_preview','unconfirmed_visit') THEN 1 ELSE 0 END) AS scanner_preview,
+          MAX(CASE WHEN e.kind='scanner_preview' THEN 1 ELSE 0 END) AS scanner_preview,
+          MAX(CASE WHEN e.kind='unconfirmed_visit' THEN 1 ELSE 0 END) AS unconfirmed_page_request,
           MAX(CASE WHEN e.kind='confirmed' THEN 1 ELSE 0 END) AS confirmed_human_click
           FROM participants p LEFT JOIN events e ON e.participant_id=p.id
           WHERE p.campaign_id=? GROUP BY p.id ORDER BY p.code
