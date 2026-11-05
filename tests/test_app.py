@@ -35,7 +35,7 @@ def test_admin_campaign_tracking_and_export():
         report = client.get("/campaigns/1/export.csv")
         assert report.status_code == 200
         assert "confirmed_human_click" in report.text
-        assert "P0001,1,1" in report.text
+        assert "P0001,0,1,1" in report.text
 
 def test_home_redirects_to_login():
     with TestClient(app) as client:
