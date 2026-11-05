@@ -78,7 +78,7 @@ def init_db() -> None:
         );
         CREATE TABLE IF NOT EXISTS events (
           id INTEGER PRIMARY KEY AUTOINCREMENT, participant_id INTEGER NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
-          kind TEXT NOT NULL CHECK(kind IN ('preview','confirmed')), created_at TEXT NOT NULL
+          kind TEXT NOT NULL CHECK(kind IN ('scanner_preview','unconfirmed_visit','confirmed')), created_at TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS events_participant_idx ON events(participant_id);
         """)
@@ -162,7 +162,7 @@ def dashboard(request: Request):
         campaigns = conn.execute("""
           SELECT c.id, c.name, c.created_at, c.active, COUNT(DISTINCT p.id) AS participants,
           COUNT(DISTINCT CASE WHEN e.kind='confirmed' THEN p.id END) AS confirmed,
-          COUNT(DISTINCT CASE WHEN e.kind='preview' THEN p.id END) AS previews
+          COUNT(DISTINCT CASE WHEN e.kind IN ('scanner_preview','unconfirmed_visit') THEN p.id END) AS previews
           FROM campaigns c LEFT JOIN participants p ON p.campaign_id=c.id
           LEFT JOIN events e ON e.participant_id=p.id GROUP BY c.id ORDER BY c.id DESC
         """).fetchall()
@@ -189,7 +189,7 @@ def create_campaign(request: Request, name: str = Form(...), count: int = Form(.
         campaigns = conn.execute("""
           SELECT c.id,c.name,c.created_at,c.active,COUNT(DISTINCT p.id) participants,
           COUNT(DISTINCT CASE WHEN e.kind='confirmed' THEN p.id END) confirmed,
-          COUNT(DISTINCT CASE WHEN e.kind='preview' THEN p.id END) previews
+          COUNT(DISTINCT CASE WHEN e.kind IN ('scanner_preview','unconfirmed_visit') THEN p.id END) previews
           FROM campaigns c LEFT JOIN participants p ON p.campaign_id=c.id
           LEFT JOIN events e ON e.participant_id=p.id GROUP BY c.id ORDER BY c.id DESC
         """).fetchall()
@@ -212,15 +212,15 @@ def export_campaign(campaign_id: int):
             raise HTTPException(404)
         rows = conn.execute("""
           SELECT p.code,
-          MAX(CASE WHEN e.kind='preview' THEN 1 ELSE 0 END) AS scanner_preview,
+          MAX(CASE WHEN e.kind IN ('scanner_preview','unconfirmed_visit') THEN 1 ELSE 0 END) AS scanner_preview,
           MAX(CASE WHEN e.kind='confirmed' THEN 1 ELSE 0 END) AS confirmed_human_click
           FROM participants p LEFT JOIN events e ON e.participant_id=p.id
           WHERE p.campaign_id=? GROUP BY p.id ORDER BY p.code
         """, (campaign_id,)).fetchall()
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["participant_code", "scanner_preview_seen", "confirmed_human_click"])
-    writer.writerows((r["code"], r["scanner_preview"], r["confirmed_human_click"]) for r in rows)
+    writer.writerow(["participant_code", "known_scanner_user_agent", "unconfirmed_page_request", "browser_confirmed_open"])
+    writer.writerows((r["code"], r["scanner_preview"], r["unconfirmed_page_request"], r["confirmed_human_click"]) for r in rows)
     filename = f"awareness-campaign-{campaign_id}.csv"
     return Response(output.getvalue(), media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
@@ -241,7 +241,7 @@ def redirect_link(token: str, request: Request):
         raise HTTPException(404, "Deze campagnelink is niet beschikbaar.")
     ua = request.headers.get("user-agent", "").lower()
     scanner_words = ("bot", "spider", "crawler", "preview", "scanner", "headless", "curl", "wget")
-    kind = "preview" if any(word in ua for word in scanner_words) else "preview"
+    kind = "scanner_preview" if any(word in ua for word in scanner_words) else "unconfirmed_visit"
     with db() as conn:
         conn.execute("INSERT INTO events(participant_id, kind, created_at) VALUES(?,?,?)",
                      (participant["id"], kind, now()))
