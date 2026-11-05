@@ -22,8 +22,8 @@ def test_admin_campaign_tracking_and_export():
         assert page.status_code == 200
         assert client.post("/login", data={"password": "test-password", "csrf": "bad"}).status_code == 403
         page = client.get("/login")
-        response = client.post("/login", data={"password": "test-password", "csrf": csrf_from(page.text)})
-        assert response.status_code == 303, response.text
+        response = client.post("/login", data={"password": "test-password", "csrf": csrf_from(page.text)}, follow_redirects=False)
+        assert response.status_code == 303
         dashboard = client.get("/admin")
         assert dashboard.status_code == 200
         response = client.post("/campaigns", data={"name": "Test", "count": "2", "csrf": csrf_from(dashboard.text)})
