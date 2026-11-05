@@ -10,6 +10,7 @@ os.environ["DATABASE_PATH"] = os.path.join(_temp.name, "test.db")
 
 from fastapi.testclient import TestClient
 from app import app
+app.ADMIN_PASSWORD_HASH = app.pwd_context.hash("test-password")
 
 def csrf_from(html):
     return re.search(r'name="csrf" value="([^"]+)"', html).group(1)
