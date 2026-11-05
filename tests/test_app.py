@@ -36,7 +36,7 @@ def test_admin_campaign_tracking_and_export():
         assert client.post(f"/r/{token}/confirm").status_code == 200
         report = client.get("/campaigns/1/export.csv")
         assert report.status_code == 200
-        assert "confirmed_human_click" in report.text
+        assert "browser_confirmed_open" in report.text
         assert "P0001,0,1,1" in report.text
 
 def test_home_redirects_to_login():
