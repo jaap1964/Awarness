@@ -9,8 +9,9 @@ os.environ["ADMIN_PASSWORD_HASH"] = CryptContext(schemes=["argon2"]).hash("test-
 os.environ["DATABASE_PATH"] = os.path.join(_temp.name, "test.db")
 
 from fastapi.testclient import TestClient
+import app as app_module
+app_module.ADMIN_PASSWORD_HASH = app_module.pwd_context.hash("test-password")
 from app import app
-app.ADMIN_PASSWORD_HASH = app.pwd_context.hash("test-password")
 
 def csrf_from(html):
     return re.search(r'name="csrf" value="([^"]+)"', html).group(1)
