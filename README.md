@@ -50,7 +50,7 @@ Open PowerShell in this repository:
 
 Create a campaign and set a participant count (1–500). The app generates pseudonymous codes (P0001…) and unique random links. Save the one-time link list from the dashboard before navigating away; it is not stored in plaintext and cannot be reconstructed. Share links manually only as part of an authorized internal exercise. Pause a campaign to disable its links. Download per-code CSV reports from the dashboard.
 
-The event model distinguishes link previews from browser-confirmed opens. A scanner GET is recorded as a possible preview. A same-origin JavaScript POST records a confirmed open. Some security scanners execute JavaScript, and some users block it, so this is a best-effort indicator, not proof of a human click.
+The event model distinguishes link previews from browser-confirmed opens. GET requests with common scanner user-agent markers are recorded as known scanner previews; other requests are recorded as unconfirmed page requests. A same-origin JavaScript POST records a browser-confirmed open. User-agent values are inspected only in memory and never stored. Some security scanners execute JavaScript, and some users block it, so this is a best-effort indicator, not proof of a human click.
 
 ## Privacy and security
 
